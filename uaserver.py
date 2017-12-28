@@ -6,6 +6,43 @@ import socketserver
 import sys
 import os
 
+class ConfigHandler(ContentHandler):
+    """Funcion para leer el xml."""
+
+    def __init__(self):
+        """Creación de lista de configuración."""
+        self.config = []
+    def startElement(self, name, attr):
+        """Obtención de atributos del archivo de configuración."""
+        if name == "account":
+            username = attr.get('username', "")
+            self.config.append(username)
+            passwd = attr.get('passwd', "")
+            self.config.append(passwd)
+        elif name == "uaserver":
+            ip = attr.get('ip', "")
+            if ip == "":
+                ip = "127.0.0.1"
+            else:
+                """ COMPROBAR SI ES VALIDA LA IP"""
+
+            self.config.append(ip)
+            port = attr.get('puerto', "")
+            self.config.append(port)
+
+        elif name == "rtpaudio":
+            puerto_rtp = attr.get('puerto',"")
+            self.config.append(puerto_rtp)
+
+       elif name == "regproxy":
+
+       elif name == "log":
+
+       elif name == "audio":
+
+
+
+
 
 class EchoHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
@@ -37,7 +74,8 @@ class EchoHandler(socketserver.DatagramRequestHandler):
             elif Method_Check == 'INVITE':
                 Answer = ('SIP/2.0 100 Trying' + '\r\n\r\n' +
                           'SIP/2.0 180 Ringing' + '\r\n\r\n' +
-                          'SIP/2.0 200 OK' + '\r\n\r\n')
+                          'SIP/2.0 200 OK' + '\r\n\r\n' +
+                          'RTP: PUERTO al que recibir')
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif Method_Check == 'BYE':
@@ -54,13 +92,21 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 
 if __name__ == "__main__":
     # Creamos servidor de eco y escuchamos
-    if len(sys.argv) == 4:
-        IP = sys.argv[1]
-        PORT = int(sys.argv[2])
-        FILE = sys.argv[3]
+    if len(sys.argv) == 2:
+        CONFIG = sys.argv[1]
+        print(CONFIG)
     else:
-        sys.exit('Usage: server.py IP PORT AUDIOFILE')
+        sys.exit('Usage: uaserver.py config')
+
+    parser = make_parser()
+    cHandler = configHandler()
+    parser.setContentHandler(cHandler)
+    parser.parse(open(CONFIG))
+    config = cHandler.get_config()
 
     serv = socketserver.UDPServer(('', PORT), EchoHandler)
     print("Listening...")
     serv.serve_forever()
+
+    except KeyboardInterrupt:
+        print("END OF SERVER")
