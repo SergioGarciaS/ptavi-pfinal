@@ -39,17 +39,17 @@ class ConfigHandler(ContentHandler):
             puerto_rtp = attr.get('puerto',"")
             self.config.append(puerto_rtp)
 
-       elif name == "regproxy":
+        elif name == "regproxy":
             dir_proxy = attr.get('ip', "")
             self.config.append(dir_proxy)
             port_proxy = attr.get('puerto',"")
             self.config.append(port_proxy)
 
-       elif name == "log":
+        elif name == "log":
             log_path = attr.get('path',"")
             self.config.append(log_path)
 
-       elif name == "audio":
+        elif name == "audio":
             Audio_path = attr.get('path',"")
             self.config.append(Audio_path)
 
@@ -61,10 +61,9 @@ def log_maker(path, hora, Evento):
     """ Función que escribe en el archivo log. """
     Log_file = open(path, 'a')
     hora = time.gmtime(float(hora))
-    Log_file.write(time.strftime('%Y%m%d%h%M%S',hora)
-    Evento = Evento.replace('\r\n', ' ') #Cambia los saltos por espacios.
-    fichero.write(Evento + '\r\n') #Añado el salto al final.
-    fichero.close()
+    Log_file.write(time.strftime('%Y%m%d%h%M%S',hora)) #Escriba la hora.
+    Log_file.write(Evento.replace("\r\n", " ") + '\r\n') #Escribo evento.
+    Log_file.close()
 
 
 
@@ -96,10 +95,10 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif Method_Check == 'INVITE':
-                cuerpo = "Content-type: application/sdp\r\n"+
+                cuerpo = ("Content-type: application/sdp\r\n"+
                          "\r\nv=0\r\n" + "o=" + str(config[0]) +
                          " " + str(config[2]) + "\r\ns=Pacticafinal\r\n" +
-                         "t=0\r\nm=audio " + str(config[4]) + " RTP\r\n\r\n"
+                         "t=0\r\nm=audio " + str(config[4]) + " RTP\r\n\r\n")
 
                 Answer = ('SIP/2.0 100 Trying' + '\r\n\r\n' +
                           'SIP/2.0 180 Ringing' + '\r\n\r\n' +
@@ -128,14 +127,16 @@ if __name__ == "__main__":
         sys.exit('Usage: uaserver.py config')
 
     parser = make_parser()
-    cHandler = configHandler()
+    cHandler = ConfigHandler()
     parser.setContentHandler(cHandler)
     parser.parse(open(CONFIG))
     config = cHandler.get_config()
-
-    serv = socketserver.UDPServer(('', PORT), EchoHandler)
+    print(config)
+    Direction = config[2]
+    PORT = int(config[3])
+    serv = socketserver.UDPServer((Direction, PORT), EchoHandler)
     print("Listening...")
     serv.serve_forever()
 
-    except KeyboardInterrupt:
-        print("END OF SERVER")
+    #except KeyboardInterrupt:
+     #   print("END OF SERVER")
