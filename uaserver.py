@@ -19,13 +19,13 @@ class ConfigHandler(ContentHandler):
             self.config.append(username)
             passwd = attr.get('passwd', "")
             self.config.append(passwd)
+
         elif name == "uaserver":
             ip = attr.get('ip', "")
             if ip == "":
                 ip = "127.0.0.1"
             else:
                 """ COMPROBAR SI ES VALIDA LA IP"""
-
             self.config.append(ip)
             port = attr.get('puerto', "")
             self.config.append(port)
@@ -35,13 +35,22 @@ class ConfigHandler(ContentHandler):
             self.config.append(puerto_rtp)
 
        elif name == "regproxy":
+            dir_proxy = attr.get('ip', "")
+            self.config.append(dir_proxy)
+            port_proxy = attr.get('puerto',"")
+            self.config.append(port_proxy)
 
        elif name == "log":
+            path = attr.get('path',"")
+            self.config.append(path)
 
        elif name == "audio":
+            Audio_path = attr.get('path',"")
+            self.config.append(Audio_path)
 
-
-
+    def get_config(self):
+        """ Devuelve la lista de configuración. """
+        return self.config
 
 
 class EchoHandler(socketserver.DatagramRequestHandler):
