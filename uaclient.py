@@ -4,7 +4,26 @@
 
 import socket
 import sys
+from xml.sax import make_parser
+from xml.sax.handler import ContentHandler
+from uaserver import ConfigHandler
+from uaserver import log_maker
 
+if len(sys.argv) == 4:
+        CONFIG = sys.argv[1]
+        print(CONFIG)
+        parser = make_parser()
+        cHandler = ConfigHandler()
+        parser.setContentHandler(cHandler)
+        parser.parse(open(CONFIG))
+        config = cHandler.get_config()
+        print(config)
+else:
+    sys.exit('Usage: uaclient.py config method option')
+
+
+
+"""
 if len(sys.argv) == 3:
     Usuario = sys.argv[2].split(':')
     PORT = int(Usuario[1])
@@ -19,11 +38,15 @@ if len(sys.argv) == 3:
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         my_socket.connect((SERVER, PORT))
         Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
+
+
         print("Enviando:", USER_M)
         my_socket.send(bytes(Data, 'utf-8'))
         data = my_socket.recv(1024)
         print('Recibido -- ', data.decode('utf-8'))
         respuesta = data.decode('utf-8').split('\r\n\r\n')[0:-1]
+        "" If register --> TACATA
+
         if sys.argv[1] == 'invite' and respuesta == ['SIP/2.0 100 Trying',
                                                      'SIP/2.0 180 Ringing',
                                                      'SIP/2.0 200 OK']:
@@ -34,3 +57,5 @@ if len(sys.argv) == 3:
     print("Socket terminado.")
 else:
     sys.exit('Usage: client.py method receiver@ip:SIPport')
+
+    """
