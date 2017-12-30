@@ -21,15 +21,48 @@ if len(sys.argv) == 4:
 else:
     sys.exit('Usage: uaclient.py config method option')
 
+print(config[6])
+print(config[5])
+Metodo = sys.argv[2]
+Methods = ['register','invite', 'bye']
+
+if Metodo not in Methods:
+    sys.exit('Los metodos utilizados son: invite o register')
+else:
+    if Metodo == "register":
+        Usuario = config[0]
+        PORT = config[5]
+        Expired = sys.argv[3]
+        USER_M = Metodo.upper() + ' sip:' + Usuario
+        Data = USER_M + ' ' + 'SIP/2.0\r\n'+ 'Expires: ' + Expired + '\r\n\r\n'
+
+    elif Metodo == "invite":
+        Destination = sys.argv[3]
+        USER_M = Metodo.upper() + ' sip:' + Destination + ' SIP/2.0\r\n'
+        USER_M += 'Content-Type: application/sdp\r\n\r\n'
+        Cuerpo = 'v=0\r\n' + 'o=' + config[0] + ' ' + config[2] + '\r\n'
+        Cuerpo += 's=misesion\r\n' + 't=0\r\n'
+        Cuerpo += 'm=audio ' + config[3] + ' RTP\r\n'
+        Data = USER_M + Cuerpo
+    print(Data) #ATENCION TRAZA A QUITAR....
 
 
 """
-if len(sys.argv) == 3:
+        # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
+        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        my_socket.connect(('127.0.0.1', PORT))
+        Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
+
+
+        print("Enviando:", USER_M)
+        my_socket.send(bytes(Data, 'utf-8'))
+
     Usuario = sys.argv[2].split(':')
     PORT = int(Usuario[1])
     USER = Usuario[0]
     SERVER = USER.split('@')[1]
-    Methods = ['invite', 'bye']
+    Methods = ['register','invite', 'bye']
     USER_M = ''
     if sys.argv[1] in Methods:
         USER_M = sys.argv[1].upper() + ' sip:' + USER
