@@ -21,8 +21,6 @@ if len(sys.argv) == 4:
 else:
     sys.exit('Usage: uaclient.py config method option')
 
-print(config[6])
-print(config[5])
 Metodo = sys.argv[2]
 Methods = ['register','invite', 'bye']
 
@@ -42,53 +40,37 @@ else:
         USER_M += 'Content-Type: application/sdp\r\n\r\n'
         Cuerpo = 'v=0\r\n' + 'o=' + config[0] + ' ' + config[2] + '\r\n'
         Cuerpo += 's=misesion\r\n' + 't=0\r\n'
-        Cuerpo += 'm=audio ' + config[3] + ' RTP\r\n'
+        Cuerpo += 'm=audio ' + config[3] + ' RTP\r\n\r\n'
         Data = USER_M + Cuerpo
+
+    elif Metodo == 'bye':
+        Destination = sys.argv[3]
+        USER_M = Metodo.upper() + ' sip:' + Destination
+        Data = USER_M + ' SIP/2.0'
+
     print(Data) #ATENCION TRAZA A QUITAR....
-
-
-"""
-        # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
-        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        my_socket.connect(('127.0.0.1', PORT))
-        Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
-
-
-        print("Enviando:", USER_M)
-        my_socket.send(bytes(Data, 'utf-8'))
-
-    Usuario = sys.argv[2].split(':')
-    PORT = int(Usuario[1])
-    USER = Usuario[0]
-    SERVER = USER.split('@')[1]
-    Methods = ['register','invite', 'bye']
-    USER_M = ''
-    if sys.argv[1] in Methods:
-        USER_M = sys.argv[1].upper() + ' sip:' + USER
+    IP_Proxy = config[5]
+    PORT_Proxy = int(config[6])
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        my_socket.connect((SERVER, PORT))
-        Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
-
+        my_socket.connect((IP_Proxy, PORT_Proxy))
 
         print("Enviando:", USER_M)
         my_socket.send(bytes(Data, 'utf-8'))
-        data = my_socket.recv(1024)
+"""
         print('Recibido -- ', data.decode('utf-8'))
         respuesta = data.decode('utf-8').split('\r\n\r\n')[0:-1]
-        "" If register --> TACATA
 
-        if sys.argv[1] == 'invite' and respuesta == ['SIP/2.0 100 Trying',
-                                                     'SIP/2.0 180 Ringing',
-                                                     'SIP/2.0 200 OK']:
-            USER_M = 'ACK' + ' sip:' + USER
+        if Metodo == 'invite' and respuesta == ['SIP/2.0 100 Trying',
+                                               'SIP/2.0 180 Ringing',
+                                               'SIP/2.0 200 OK']:
+            USER_M = 'ACK' + ' sip:' + Destination
             Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
             print("Enviando:", USER_M)
             my_socket.send(bytes(Data, 'utf-8'))
-    print("Socket terminado.")
-else:
-    sys.exit('Usage: client.py method receiver@ip:SIPport')
+            print("Socket terminado.")
 
-    """
+        elif Metodo == 'register' and respuesta == 'SIP/2.0 401 Unauthorized':
+            print(USER_M)
+"""
