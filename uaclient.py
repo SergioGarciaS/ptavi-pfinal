@@ -56,9 +56,9 @@ else:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
             my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            my_socket.connect((IP_Proxy, 4437))
+            my_socket.connect((IP_Proxy, PORT_Proxy))
             print("Enviando:", USER_M)
-            my_socket.send(bytes(Data, 'utf-8')) #REVISAR LO DEL PUERTO
+            my_socket.send(bytes(Data, 'utf-8'))
             data = my_socket.recv(1024)
             print('Recibido -- ', data.decode('utf-8'))
             respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
