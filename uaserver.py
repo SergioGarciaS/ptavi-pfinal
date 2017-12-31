@@ -65,8 +65,6 @@ def log_maker(path, hora, Evento):
     Log_file.write(Evento.replace("\r\n", " ") + '\r\n') #Escribo evento.
     Log_file.close()
 
-
-
 class EchoHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
 
@@ -82,7 +80,9 @@ class EchoHandler(socketserver.DatagramRequestHandler):
             probar = line.decode('utf-8').split(' ')
             Protocol_Check = probar[1].split(':')[0]
             Method_Check = line.decode('utf-8').split(' ')[0]
-            Final_Check = probar[2]
+            Final_Check = probar[2].split('\r\n')[0]
+            print(Final_Check)
+            print(Protocol_Check)
 
             print("El cliente nos manda " + line.decode('utf-8'))
 
@@ -90,15 +90,15 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
-            elif Final_Check != 'SIP/2.0\r\n\r\n' or Protocol_Check != 'sip':
+            elif Final_Check != 'SIP/2.0' or Protocol_Check != 'sip':
                 Answer = ('SIP/2.0 400 Bad Request' + '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif Method_Check == 'INVITE':
                 cuerpo = ("Content-type: application/sdp\r\n"+
-                         "\r\nv=0\r\n" + "o=" + str(config[0]) +
-                         " " + str(config[2]) + "\r\ns=Pacticafinal\r\n" +
-                         "t=0\r\nm=audio " + str(config[4]) + " RTP\r\n\r\n")
+                          "\r\nv=0\r\n" + "o=" + str(config[0]) +
+                          " " + str(config[2]) + "\r\ns=Pacticafinal\r\n" +
+                          "t=0\r\nm=audio " + str(config[4]) + " RTP\r\n\r\n")
 
                 Answer = ('SIP/2.0 100 Trying' + '\r\n\r\n' +
                           'SIP/2.0 180 Ringing' + '\r\n\r\n' +
@@ -127,11 +127,11 @@ if __name__ == "__main__":
         sys.exit('Usage: uaserver.py config')
 
     parser = make_parser()
-    cHandler = ConfigHandler()
-    parser.setContentHandler(cHandler)
+    sHandler = ConfigHandler()
+    parser.setContentHandler(sHandler)
     parser.parse(open(CONFIG))
-    config = cHandler.get_config()
-    print(config)
+    config = sHandler.get_config()
+    #print('===================================',config,'======================')
     Direction = config[2]
     PORT = int(config[3])
     serv = socketserver.UDPServer((Direction, PORT), EchoHandler)
