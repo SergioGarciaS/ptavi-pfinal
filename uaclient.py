@@ -53,27 +53,31 @@ else:
     PORT_Proxy = int(config[6])
 
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
-        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        my_socket.connect((IP_Proxy, PORT_Proxy))
-
-        print("Enviando:", USER_M)
-        my_socket.send(bytes(Data, 'utf-8'))
-        data = my_socket.recv(1024)
-        print('Recibido -- ', data.decode('utf-8'))
-        respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
-
-        if Metodo == 'invite' and respuesta == ['SIP/2.0 100 Trying',
-                                                'SIP/2.0 180 Ringing',
-                                                'SIP/2.0 200 OK']:
-            USER_M = 'ACK' + ' sip:' + Destination
-            Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
+            my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            my_socket.connect((IP_Proxy, 4437))
             print("Enviando:", USER_M)
-            my_socket.send(bytes(Data, 'utf-8'))
-            print("Socket terminado.")
+            my_socket.send(bytes(Data, 'utf-8')) #REVISAR LO DEL PUERTO
+            data = my_socket.recv(1024)
+            print('Recibido -- ', data.decode('utf-8'))
+            respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
 
-        elif Metodo == 'register':
-            if respuesta == 'SIP/2.0 401 Unauthorized':
-                print(USER_M) # Aqui va la movida de la passwd.
-            else:
-                Print("Registro correcto")
+            if Metodo == 'invite' and respuesta == ['SIP/2.0 100 Trying',
+                                                    'SIP/2.0 180 Ringing',
+                                                    'SIP/2.0 200 OK']:
+                USER_M = 'ACK' + ' sip:' + Destination
+                Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
+                print("Enviando:", USER_M)
+                my_socket.send(bytes(Data, 'utf-8'))
+                print("Socket terminado.")
+
+            elif Metodo == 'register':
+                if respuesta == 'SIP/2.0 401 Unauthorized':
+                    print(USER_M) # Aqui va la movida de la passwd.
+                else:
+                    Print("Registro correcto")
+
+    except ConnectionRefusedError:
+        print("Escribir en el log")
+
