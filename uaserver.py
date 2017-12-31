@@ -67,23 +67,27 @@ def log_maker(path, hora, Evento):
 
 class EchoHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
+    PORT_SEND_RTP = []
 
     def handle(self):
         """Programa principal."""
         Methods = ['INVITE', 'BYE', 'ACK']
         IP_Client = str(self.client_address[0])
+
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
+            PORT_SEND_RTP = '0000'
             line = self.rfile.read()
             if not line:
                 break
-            probar = line.decode('utf-8').split(' ')
-            Protocol_Check = probar[1].split(':')[0]
-            Method_Check = line.decode('utf-8').split(' ')[0]
-            Final_Check = probar[2].split('\r\n')[0]
-            print(Final_Check)
-            print(Protocol_Check)
 
+            probar = line.decode('utf-8').split(' ')
+            Protocol_Check = probar[1].split(':')[0]  #print(Protocol_Check)
+            Method_Check = line.decode('utf-8').split(' ')[0]
+            Final_Check = probar[2].split('\r\n')[0] # print(Final_Check)
+
+            Audio_path = config[8]
+            print(Audio_path)
             print("El cliente nos manda " + line.decode('utf-8'))
 
             if Method_Check not in Methods:
@@ -95,6 +99,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif Method_Check == 'INVITE':
+                self.PORT_SEND_RTP.append(probar[5])
                 cuerpo = ("Content-type: application/sdp\r\n"+
                           "\r\nv=0\r\n" + "o=" + str(config[0]) +
                           " " + str(config[2]) + "\r\ns=Pacticafinal\r\n" +
@@ -111,7 +116,9 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif Method_Check == 'ACK':
-                toRun = ('mp32rtp -i ' + IP_Client + ' -p 23032 < ' + Audio_path)
+
+                toRun = ('mp32rtp -i ' + IP_Client + ' -p ')
+                toRun += (self.PORT_SEND_RTP[0] + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
                 os.system(toRun)
                 print(" *=====================*\n",
@@ -122,7 +129,7 @@ if __name__ == "__main__":
     # Creamos servidor de eco y escuchamos
     if len(sys.argv) == 2:
         CONFIG = sys.argv[1]
-        print(CONFIG)
+        # print(CONFIG)         ESTO DE MOMENTO LO HACE BIEN
     else:
         sys.exit('Usage: uaserver.py config')
 
