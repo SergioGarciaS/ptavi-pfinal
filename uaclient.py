@@ -17,7 +17,6 @@ if len(sys.argv) == 4:
         parser.setContentHandler(cHandler)
         parser.parse(open(CONFIG))
         config = cHandler.get_config()
-        print(config)
 else:
     sys.exit('Usage: uaclient.py config method option')
 
@@ -25,13 +24,14 @@ Metodo = sys.argv[2]
 Methods = ['register','invite', 'bye']
 
 if Metodo not in Methods:
-    sys.exit('Los metodos utilizados son: invite o register')
+    sys.exit('Los metodos utilizados son: invite,register,bye')
 else:
     if Metodo == "register":
         Usuario = config[0]
-        PORT = config[5]
+        PORT = config[6]
+        PORT_UA2 = config[3]    #REVISAR BIEN LO DE LOS PUERTOS
         Expired = sys.argv[3]
-        USER_M = Metodo.upper() + ' sip:' + Usuario
+        USER_M = Metodo.upper() + ' sip:' + Usuario + ':' + PORT_UA2
         Data = USER_M + ' ' + 'SIP/2.0\r\n'+ 'Expires: ' + Expired + '\r\n\r\n'
 
     elif Metodo == "invite":
@@ -51,6 +51,7 @@ else:
     print(Data) #ATENCION TRAZA A QUITAR....
     IP_Proxy = config[5]
     PORT_Proxy = int(config[6])
+
     # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -58,19 +59,21 @@ else:
 
         print("Enviando:", USER_M)
         my_socket.send(bytes(Data, 'utf-8'))
-"""
+        data = my_socket.recv(1024)
         print('Recibido -- ', data.decode('utf-8'))
-        respuesta = data.decode('utf-8').split('\r\n\r\n')[0:-1]
+        respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
 
         if Metodo == 'invite' and respuesta == ['SIP/2.0 100 Trying',
-                                               'SIP/2.0 180 Ringing',
-                                               'SIP/2.0 200 OK']:
+                                                'SIP/2.0 180 Ringing',
+                                                'SIP/2.0 200 OK']:
             USER_M = 'ACK' + ' sip:' + Destination
             Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
             print("Enviando:", USER_M)
             my_socket.send(bytes(Data, 'utf-8'))
             print("Socket terminado.")
 
-        elif Metodo == 'register' and respuesta == 'SIP/2.0 401 Unauthorized':
-            print(USER_M)
-"""
+        elif Metodo == 'register':
+            if respuesta == 'SIP/2.0 401 Unauthorized':
+                print(USER_M) # Aqui va la movida de la passwd.
+            else:
+                Print("Registro correcto")
