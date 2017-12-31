@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <server   name="Proxyneta Server"
+            ip="127.0.0.1"
+            puerto="8450"/>
+  <database path="./users.txt"
+            passwdpath="./passwords.txt"/>
+  <log      path="./log_pr.txt"/>
+</config>
