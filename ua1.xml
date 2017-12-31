@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <account    username="montoro@hacienda.es"
+                passwd="CR7pagaya"/>
+    <uaserver   ip="127.0.0.1"
+                puerto="6060"/>
+    <rtpaudio   puerto="5080"/>
+    <regproxy   ip="127.0.0.1"
+                puerto="6000"/>
+    <log        path="./log_ua1.txt"/>
+    <audio      path="./cancion.mp3"/>
+</config>
