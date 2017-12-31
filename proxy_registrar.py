@@ -2,11 +2,45 @@
 # -*- coding: utf-8 -*-
 """Clase (y programa principal) para un servidor de eco en UDP simple."""
 
+from xml.sax import make_parser
+from xml.sax.handler import ContentHandler
 import socketserver
 import sys
 import json
 import time
 
+class ConfigHandler(ContentHandler):
+    """Funcion para leer el xml."""
+
+    def __init__(self):
+        """Creación de lista de configuración."""
+        self.config = []
+
+    def startElement(self, name, attr):
+        """Obtención de atributos del archivo de configuración."""
+
+        if name == "server":
+            Name = attr.get('name', "")
+            self.config.append(Name)
+            ip = attr.get('ip', "")
+            self.config.append(ip)
+            Port = attr.get('puerto',"")
+            self.config.append(Port)
+
+        elif name == "database":
+            User_Path = attr.get('path', "")
+
+            self.config.append(User_Path)
+            Passwd_Path = attr.get('passwdpath', "")
+            self.config.append(Passwd_Path)
+
+        elif name == "log":
+            log_path = attr.get('path',"")
+            self.config.append(log_path)
+
+    def get_config(self):
+        """ Devuelve la lista de configuración. """
+        return self.config
 
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
@@ -65,11 +99,23 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 2:
+        CONFIG = sys.argv[1]
+        # print(CONFIG)         ESTO DE MOMENTO LO HACE BIEN
+    else:
+        sys.exit('Usage: python3 proxy_registrar.py config')
 
-    Server_port = int(sys.argv[1])
+    parser = make_parser()
+    pHandler = ConfigHandler()
+    parser.setContentHandler(pHandler)
+    parser.parse(open(CONFIG))
+    config = pHandler.get_config()
+    print(config)
+    Server_port = int(config[2])
+
     serv = socketserver.UDPServer(('', Server_port), SIPRegisterHandler)
 
-    print("Lanzando servidor UDP de eco...")
+    print("Server ",config[0],' listening at port',config[2],'...')
     try:
         serv.serve_forever()
     except KeyboardInterrupt:
