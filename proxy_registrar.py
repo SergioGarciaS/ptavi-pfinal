@@ -4,6 +4,7 @@
 
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
+
 import socketserver
 import sys
 import json
@@ -63,7 +64,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                                  time.gmtime(time.time()))
         deleted = []
         for cosas in self.Client_data:
-            if self.Client_data[cosas]['expires'] <= time_str:
+            if self.Client_data[cosas]['Reg_time'] <= time_str:
                 deleted.append(cosas)
         for users in deleted:
             self.Client_data.pop(users)
@@ -71,25 +72,38 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     def handle(self):
         """handle method of the server class."""
         atributos = {}  # Value de datos del cliente.
-        self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
 
         if not self.Client_data:
             self.json2registered()
 
+        Methods = ['REGISTER','BYE','INVITE']
+
         LINE = self.rfile.read()
         DATA = LINE.decode('utf-8')
         CORTES = DATA.split(' ')
+        Method_Check = CORTES[0]
+        USUARIO = CORTES[1]
+        Expire = int(CORTES[3].split('\r')[0])
+        Final_Check = CORTES[2].split('\r\n')[0]
+        Protocol_Check = USUARIO.split(':')[0]
+
         time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
                                         time.gmtime(time.time() +
-                                                    int(CORTES[3][:-4])))
-        if CORTES[0] == 'REGISTER':
+                                        Expire))
+        if Method_Check not in Methods:
+            Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
+            self.wfile.write(bytes(Answer, 'utf-8'))
+
+        elif Final_Check != 'SIP/2.0' or Protocol_Check != 'sip':
+            Answer = ('SIP/2.0 400 Bad Request' + '\r\n\r\n')
+            self.wfile.write(bytes(Answer, 'utf-8'))
+
+        if Method_Check == 'REGISTER':
             atributos['address'] = self.client_address[0]
-            if CORTES[3][:-4] != '0':
-                atributos['expires'] = time_expire_str
-            else:
-                atributos['expires'] = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
-                                                     time.gmtime(time.time()))
-            self.Client_data[CORTES[1]] = atributos
+            atributos['port'] = str(self.client_address[1])
+            atributos['Reg_time'] = time_expire_str
+            atributos['t_expiracion[s]'] = str(Expire)
+            self.Client_data[USUARIO] = atributos
             self.comprobar_cad_del()
 
         print("Datos cliente(IP, puerto): " + str(self.client_address))
@@ -110,7 +124,7 @@ if __name__ == "__main__":
     parser.setContentHandler(pHandler)
     parser.parse(open(CONFIG))
     config = pHandler.get_config()
-    print(config)
+    #print(config)
     Server_port = int(config[2])
 
     serv = socketserver.UDPServer(('', Server_port), SIPRegisterHandler)
