@@ -69,6 +69,23 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         for users in deleted:
             self.Client_data.pop(users)
 
+    def comprobar_usuario(self, usuario):
+        """ FUNCION PARA COMPROBAR USUARIOS"""
+        cliente = usuario.split(":")[1]
+        print(cliente)
+        user_pass = open("passwords", "r")
+        self.user_pass = user_pass.read()
+        usuarios_pass = self.user_pass.split('\n')
+        print(usuarios_pass)
+        esta = False
+        for i in range(len(usuarios_pass)):
+            usuario= usuarios_pass[i].split(':')[0]
+            if cliente == usuario :
+                esta = True
+
+        return esta
+
+
     def handle(self):
         """handle method of the server class."""
         atributos = {}  # Value de datos del cliente.
@@ -83,13 +100,11 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         CORTES = DATA.split(' ')
         Method_Check = CORTES[0]
         USUARIO = CORTES[1]
-        Expire = int(CORTES[3].split('\r')[0])
+        Expire = CORTES[3].split('\r')[0]
         Final_Check = CORTES[2].split('\r\n')[0]
         Protocol_Check = USUARIO.split(':')[0]
 
-        time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
-                                        time.gmtime(time.time() +
-                                        Expire))
+
         if Method_Check not in Methods:
             Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
             self.wfile.write(bytes(Answer, 'utf-8'))
@@ -98,13 +113,24 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             Answer = ('SIP/2.0 400 Bad Request' + '\r\n\r\n')
             self.wfile.write(bytes(Answer, 'utf-8'))
 
-        if Method_Check == 'REGISTER':
-            atributos['address'] = self.client_address[0]
-            atributos['port'] = str(self.client_address[1])
-            atributos['Reg_time'] = time_expire_str
-            atributos['t_expiracion[s]'] = str(Expire)
-            self.Client_data[USUARIO] = atributos
-            self.comprobar_cad_del()
+        elif Method_Check == 'REGISTER':
+            print(USUARIO)
+            comprueba = self.comprobar_usuario(USUARIO)
+            if comprueba == True:
+                time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
+                                                time.gmtime(time.time() +
+                                                int(Expire)))
+                atributos['address'] = self.client_address[0]
+                atributos['port'] = str(self.client_address[1])
+                atributos['Reg_time'] = time_expire_str
+                atributos['t_expiracion[s]'] = Expire
+                self.Client_data[USUARIO] = atributos
+                self.comprobar_cad_del()
+            else:
+                print("NO ESTA EL USUARIO, manda la contraseña")
+
+        elif Method_Check == 'INVITE':
+            print("Pues es un invite loco")
 
         print("Datos cliente(IP, puerto): " + str(self.client_address))
         print("El cliente nos manda ", DATA[:-4])
