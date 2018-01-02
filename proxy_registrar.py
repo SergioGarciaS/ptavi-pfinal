@@ -71,6 +71,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
     def comprobar_usuario(self, usuario):
         """ FUNCION PARA COMPROBAR USUARIOS"""
+
         cliente = usuario.split(":")[1]
         print(cliente)
         user_pass = open("passwords", "r")
@@ -100,10 +101,11 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         CORTES = DATA.split(' ')
         Method_Check = CORTES[0]
         USUARIO = CORTES[1]
+        print(CORTES)
         Expire = CORTES[3].split('\r')[0]
         Final_Check = CORTES[2].split('\r\n')[0]
         Protocol_Check = USUARIO.split(':')[0]
-
+        cuerpo = DATA.split('\r\n\r\n')[1]
 
         if Method_Check not in Methods:
             Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
@@ -115,8 +117,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
         elif Method_Check == 'REGISTER':
             print(USUARIO)
-            comprueba = self.comprobar_usuario(USUARIO)
-            if comprueba == True:
+
+            if self.comprobar_usuario(USUARIO) and cuerpo =='loco':
+                print("entra en locura")
                 time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
                                                 time.gmtime(time.time() +
                                                 int(Expire)))
@@ -126,8 +129,16 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 atributos['t_expiracion[s]'] = Expire
                 self.Client_data[USUARIO] = atributos
                 self.comprobar_cad_del()
-            else:
-                print("NO ESTA EL USUARIO, manda la contraseña")
+            elif not self.comprobar_usuario(USUARIO):
+                print("NO ESTA EL USUARIO")
+                Answer = ('SIP/2.0 404 User Not Found' + '\r\n\r\n')
+                self.wfile.write(bytes(Answer, 'utf-8'))
+
+            elif cuerpo != "loco":
+
+                Answer = ('SIP/2.0 401 Unauthorized' + '\r\n\r\n')
+                self.wfile.write(bytes(Answer, 'utf-8'))
+                print('estamos dentro')
 
         elif Method_Check == 'INVITE':
             print("Pues es un invite loco")
