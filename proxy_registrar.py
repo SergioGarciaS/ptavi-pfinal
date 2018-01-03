@@ -177,10 +177,10 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 print('Recibido -- ', data.decode('utf-8'))
                 respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
                 response = respuesta[0]
-                if Metodo == 'invite' and respuesta == ['SIP/2.0 100 Trying',
+                if respuesta == ['SIP/2.0 100 Trying',
                                                     'SIP/2.0 180 Ringing',
                                                     'SIP/2.0 200 OK']:
-                    USER_M = 'ACK' + ' sip:' + Destination
+                    USER_M = 'ACK' + ' sip:' + 'Destination'
                     Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
                     print("Enviando:", USER_M)
                     my_socket.send(bytes(Data, 'utf-8'))
