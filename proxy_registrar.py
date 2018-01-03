@@ -4,11 +4,12 @@
 
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
-
+import socket
 import socketserver
 import sys
 import json
 import time
+import random
 
 class ConfigHandler(ContentHandler):
     """Funcion para leer el xml."""
@@ -72,24 +73,25 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     def comprobar_usuario(self, usuario):
         """ FUNCION PARA COMPROBAR USUARIOS"""
 
-        cliente = usuario.split(":")[1]
-        print(cliente)
+        #cliente = usuario.split(":")[1]
+        #print(cliente)
         user_pass = open("passwords", "r")
         self.user_pass = user_pass.read()
         usuarios_pass = self.user_pass.split('\n')
-        print(usuarios_pass)
+        #print(usuarios_pass)
         esta = False
         for i in range(len(usuarios_pass)):
-            usuario= usuarios_pass[i].split(':')[0]
+            cliente = usuarios_pass[i].split(':')[0]
             if cliente == usuario :
                 esta = True
 
         return esta
 
-
     def handle(self):
         """handle method of the server class."""
         atributos = {}  # Value de datos del cliente.
+
+
 
         if not self.Client_data:
             self.json2registered()
@@ -101,11 +103,14 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         CORTES = DATA.split(' ')
         Method_Check = CORTES[0]
         USUARIO = CORTES[1]
-        print(CORTES)
+        print("ESTE ES EL DATA: ", DATA)
         Expire = CORTES[3].split('\r')[0]
         Final_Check = CORTES[2].split('\r\n')[0]
         Protocol_Check = USUARIO.split(':')[0]
-        cuerpo = DATA.split('\r\n\r\n')[1]
+        USER = USUARIO.split(':')[1]
+        cuerpo = DATA.split('\r\n\r\n')[1].split(' ')[0]
+        print(cuerpo)
+        nonce = random.randint(0,999999999999999999999)
 
         if Method_Check not in Methods:
             Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
@@ -116,9 +121,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             self.wfile.write(bytes(Answer, 'utf-8'))
 
         elif Method_Check == 'REGISTER':
-            print(USUARIO)
+            #print(USUARIO)
 
-            if self.comprobar_usuario(USUARIO) and cuerpo =='loco':
+            if self.comprobar_usuario(USER) and cuerpo =='Authenticate:':
                 print("entra en locura")
                 time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
                                                 time.gmtime(time.time() +
@@ -127,26 +132,64 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 atributos['port'] = str(self.client_address[1])
                 atributos['Reg_time'] = time_expire_str
                 atributos['t_expiracion[s]'] = Expire
-                self.Client_data[USUARIO] = atributos
+
+                self.Client_data[USER] = atributos
                 self.comprobar_cad_del()
-            elif not self.comprobar_usuario(USUARIO):
+                Answer = ('SIP/2.0 200 OK' + '\r\n\r\n')
+                self.wfile.write(bytes(Answer, 'utf-8'))
+
+            elif not self.comprobar_usuario(USER):
                 print("NO ESTA EL USUARIO")
                 Answer = ('SIP/2.0 404 User Not Found' + '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
-            elif cuerpo != "loco":
-
-                Answer = ('SIP/2.0 401 Unauthorized' + '\r\n\r\n')
+            elif cuerpo != 'Authenticate:':
+                Answer = ('SIP/2.0 401 Unauthorized' + '\r\n')
+                Answer += ('WWW Authenticate: nonce=' + str(nonce)+ '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
                 print('estamos dentro')
 
         elif Method_Check == 'INVITE':
             print("Pues es un invite loco")
+            cabecera = DATA[:-4]
+            Send_Inf =DATA.split('\r\n')
+            RTPSENDER = Send_Inf[7].split(' ')[1]
 
-        print("Datos cliente(IP, puerto): " + str(self.client_address))
-        print("El cliente nos manda ", DATA[:-4])
-
-        self.register2json()
+            SENDER = DATA.split('\r\n')[4].split(' ')[0].split('=')[1]
+            cliente = cabecera.split(' ')[1].split(':')[1]
+            print(cliente)
+            value = self.Client_data.get(cliente,"")
+            print(cuerpo)
+            #CREAMOS EL PAQUETE A ENVIAR
+            USER_M = 'INVITE' + ' sip:' + value.get('address') + ' SIP/2.0\r\n'
+            USER_M += 'Content-Type: application/sdp\r\n\r\n'
+            Cuerpo = 'v=0\r\n' + 'o=' + SENDER + ' ' + value.get('port') + '\r\n'
+            Cuerpo += 's=misesion\r\n' + 't=0\r\n'
+            Cuerpo += 'm=audio ' + RTPSENDER + ' RTP\r\n\r\n'
+            Data = USER_M + Cuerpo
+            my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                my_socket.connect(('127.0.0.1' , int('6060')))
+                print("Enviando:", USER_M)
+                my_socket.send(bytes(Data, 'utf-8'))
+                data = my_socket.recv(1024)
+                print('Recibido -- ', data.decode('utf-8'))
+                respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
+                response = respuesta[0]
+                if Metodo == 'invite' and respuesta == ['SIP/2.0 100 Trying',
+                                                    'SIP/2.0 180 Ringing',
+                                                    'SIP/2.0 200 OK']:
+                    USER_M = 'ACK' + ' sip:' + Destination
+                    Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
+                    print("Enviando:", USER_M)
+                    my_socket.send(bytes(Data, 'utf-8'))
+                    print("Socket terminado.")
+            except ConnectionRefusedError:
+                print("Escribir en el log")
+           # print("Datos cliente(IP, puerto): " + str(self.client_address))
+           # print("El cliente nos manda ", DATA[:-4])
+           #self.register2json()
 
 
 if __name__ == "__main__":
