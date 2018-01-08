@@ -87,6 +87,48 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
         return esta
 
+    def send_to_server(self, ip, puerto, data, cabecera,reenvio):
+        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            my_socket.connect((ip , puerto))
+            print("Enviando:", cabecera)
+            my_socket.send(bytes(data, 'utf-8'))
+            print('Socket terminado')
+            data = my_socket.recv(1024)
+            print('Recibido -- ', data.decode('utf-8'))
+            respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
+            response = respuesta[0]
+            print(response)
+            corp = data.decode('utf-8').split('\r\n\r\n')[4:]
+            print(corp)
+            if respuesta == ['SIP/2.0 100 Trying',
+                             'SIP/2.0 180 Ringing',
+                             'SIP/2.0 200 OK']:
+                #ENVIAR DICHA SECUENCIA AL CLIENT"
+                Cuerpo = self.Client_data.get(reenvio,"")
+                IP_R = Cuerpo.get("address","")
+                print('esta es la ip:', IP_R)
+                PORT_R = int(Cuerpo.get("port",""))
+                Rs = corp[0].split('\r\n')[1]
+                print(Rs)
+                Res = Rs.split(' ')[0]
+                Resend = Res.split('=')[1]
+                print(Resend)
+
+                self.send_to_server(IP_R,PORT_R,data.decode('utf-8'),respuesta[0:3],Resend)
+            elif response == "MATRCA":
+                print('tevuelvesloco')
+                """ SI NOS RESPONDE UN ACK
+                USER_M = 'ACK' + ' sip:' + 'Destination'
+                Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
+                print("Enviando:", USER_M)
+                my_socket.send(bytes(Data, 'utf-8'))
+                print("Socket terminado.")
+                """
+        except ConnectionRefusedError:
+            print("Escribir en el log")
+
     def handle(self):
         """handle method of the server class."""
         atributos = {}  # Value de datos del cliente.
@@ -108,7 +150,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         Final_Check = CORTES[2].split('\r\n')[0]
         Protocol_Check = USUARIO.split(':')[0]
         USER = USUARIO.split(':')[1]
-        cuerpo = DATA.split('\r\n\r\n')[1].split(' ')[0]
+        cuerpo = DATA.split('\r\n')[2].split(' ')[0]
         print(cuerpo)
         nonce = random.randint(0,999999999999999999999)
 
@@ -144,12 +186,14 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif cuerpo != 'Authenticate:':
+                print('VIENE SIN AUTORIZACION --->')
                 Answer = ('SIP/2.0 401 Unauthorized' + '\r\n')
                 Answer += ('WWW Authenticate: nonce=' + str(nonce)+ '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
-                print('estamos dentro')
+
 
         elif Method_Check == 'INVITE':
+
             print("Pues es un invite loco")
             cabecera = DATA[:-4]
             Send_Inf =DATA.split('\r\n')
@@ -161,35 +205,20 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             value = self.Client_data.get(cliente,"")
             print(cuerpo)
             #CREAMOS EL PAQUETE A ENVIAR
-            USER_M = 'INVITE' + ' sip:' + value.get('address') + ' SIP/2.0\r\n'
-            USER_M += 'Content-Type: application/sdp\r\n\r\n'
-            Cuerpo = 'v=0\r\n' + 'o=' + SENDER + ' ' + value.get('port') + '\r\n'
-            Cuerpo += 's=misesion\r\n' + 't=0\r\n'
+            USER_M = 'INVITE' + ' sip:' + cliente + ' SIP/2.0\r\n\r\n'
+            USER_M += 'Content-Type: application/sdp\r\n'
+            Cuerpo = 'v=0\r\n' + 'o=' + SENDER + ' ' + value.get('address')
+            Cuerpo += '\r\n' + 's=misesion\r\n' + 't=0\r\n'
             Cuerpo += 'm=audio ' + RTPSENDER + ' RTP\r\n\r\n'
             Data = USER_M + Cuerpo
-            my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            try:
-                my_socket.connect(('127.0.0.1' , int('6060')))
-                print("Enviando:", USER_M)
-                my_socket.send(bytes(Data, 'utf-8'))
-                data = my_socket.recv(1024)
-                print('Recibido -- ', data.decode('utf-8'))
-                respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
-                response = respuesta[0]
-                if respuesta == ['SIP/2.0 100 Trying',
-                                                    'SIP/2.0 180 Ringing',
-                                                    'SIP/2.0 200 OK']:
-                    USER_M = 'ACK' + ' sip:' + 'Destination'
-                    Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
-                    print("Enviando:", USER_M)
-                    my_socket.send(bytes(Data, 'utf-8'))
-                    print("Socket terminado.")
-            except ConnectionRefusedError:
-                print("Escribir en el log")
-           # print("Datos cliente(IP, puerto): " + str(self.client_address))
-           # print("El cliente nos manda ", DATA[:-4])
-           #self.register2json()
+            #MOVIDAS DE PRUEBA:
+            IP = '127.0.0.1'
+            puerto = 6060
+            self.send_to_server(IP, puerto, Data, USER_M,cliente) #FUNCION ENVIAR.
+
+            print("Datos cliente(IP, puerto): " + str(self.client_address))
+            print("El cliente nos manda ", DATA[:-4])
+            self.register2json()
 
 
 if __name__ == "__main__":
