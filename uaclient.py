@@ -41,6 +41,7 @@ Metodo = sys.argv[2]
 Methods = ['register','invite', 'bye']
 
 if Metodo not in Methods:
+    log_maker(config[7], "error", "metodos erroneos")
     sys.exit('Los metodos utilizados son: invite,register,bye')
 else:
 
@@ -81,31 +82,38 @@ else:
             my_socket.connect((IP_Proxy, PORT_Proxy))
             print("Enviando:", USER_M)
             my_socket.send(bytes(Data, 'utf-8'))
+            log_maker(config[7], "envia", Data)
             data = my_socket.recv(1024)
+
             #print('Recibido -- ', data.decode('utf-8'))
             respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
             response = respuesta[0]
             if Metodo == 'invite' and respuesta == ['SIP/2.0 100 Trying',
                                                     'SIP/2.0 180 Ringing',
                                                     'SIP/2.0 200 OK']:
+                log_maker(config[7], "recibe", data.decode('utf-8'))
                 Destination = sys.argv[3]
                 USER_M = 'ACK' + ' sip:' + Destination
                 Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
                 print("Enviando:", USER_M)
+                log_maker(config[7], "envia", Data)
                 my_socket.send(bytes(Data, 'utf-8'))
                 print("Socket terminado.")
 
                 toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
                 toRun += (RTP_PORT + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
+                log_maker(config[7], "ejecuta", toRun)
                 os.system(toRun)
                 print(" *=====================*\n",
                       " |The file is send...|\n",
                       "*=====================*\n")
-
+            elif response == 'SIP/2.0 200 OK':
+                log_maker(config[7], "recibe", response)
             elif Metodo == 'register':
-                response = response.split('\r\n')[0]
-                if response == 'SIP/2.0 401 Unauthorized':
+                respons = response.split('\r\n')[0]
+                if respons == 'SIP/2.0 401 Unauthorized':
+                    log_maker(config[7], "error", response)
                     nonce_large = respuesta[0].split(' ')[4]
                     nonce = nonce_large.split('=')[1]
                     non_ce = checking_nonce(nonce)
@@ -114,12 +122,15 @@ else:
                     Data = USER_M + ' ' + 'SIP/2.0\r\n'+ 'Expires: ' + Expired + '\r\n'
                     Data += 'Authenticate: ' + non_ce + '\r\n\r\n'
                     print("EnviandoR:", USER_M)
+                    log_maker(config[7], "envia", Data)
                     my_socket.send(bytes(Data, 'utf-8'))
                     print("Socket terminado.")
-                elif response == 'SIP/2.0 404 User Not Found':
+                elif respons == 'SIP/2.0 404 User Not Found':
+                    log_maker(config[7], "error", response)
                     print("No es posible conectarse")
-                elif response == 'SIP/2.0 400 Bad Request':
+                elif respons == 'SIP/2.0 400 Bad Request':
                     print("Esta mal formado la peticion")
+                    log_maker(config[7], "error", response)
     except ConnectionRefusedError:
         print("Escribir en el log")
 
