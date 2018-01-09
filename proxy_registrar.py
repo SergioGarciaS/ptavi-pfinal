@@ -10,6 +10,7 @@ import sys
 import json
 import time
 import random
+import hashlib
 
 class ConfigHandler(ContentHandler):
     """Funcion para leer el xml."""
@@ -48,6 +49,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
 
     Client_data = {}
+    Client_nonce = {}
 
     def register2json(self):
         """Json creator."""
@@ -86,6 +88,38 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 esta = True
 
         return esta
+
+    def devolver_pass(self, usuario):
+        """ FUNCION PARA COMPROBAR USUARIOS"""
+
+        #cliente = usuario.split(":")[1]
+        #print(cliente)
+        user_pass = open("passwords", "r")
+        self.user_pass = user_pass.read()
+        usuarios_pass = self.user_pass.split('\n')
+        #print(usuarios_pass)
+        passwd = " "
+        for i in range(len(usuarios_pass)):
+            cliente = usuarios_pass[i].split(':')[0]
+            if cliente == usuario :
+                passwd = usuarios_pass[i].split(':')[1]
+
+        return passwd
+
+    def checking_nonce(self, nonce, user):
+        """
+        method to get the number result of hash function
+        with password and nonce
+        """
+        function_check = hashlib.md5()
+        function_check.update(bytes(str(nonce), "utf-8"))
+        #print('EL Nonce : "' + str(nonce) + '"') #COMPROBACION
+        function_check.update(bytes(self.devolver_pass(user), "utf-8"))
+        #print('LA CONTRASEÑA ES : "' + self.devolver_pass(user) + '"') #COMPROBACION
+        function_check.digest() #no sé si esto hace falta o directamente hex
+        #print('RESPONSE PROXY: ' + function_check.hexdigest()) #COMPROBACION
+        return function_check.hexdigest()
+
 
     def send_to_server(self, ip, puerto, data, cabecera):
         try:
@@ -132,7 +166,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         USER = USUARIO.split(':')[1]
         cuerpo = DATA.split('\r\n')[2].split(' ')[0]
         #print(cuerpo)
-        nonce = random.randint(0,999999999999999999999)
+        nonce = random.randint(0,99999)
 
         if Method_Check not in Methods:
             Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
@@ -147,19 +181,30 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             Expire = CORTES[3].split('\r\n')[0]
 
             if self.comprobar_usuario(USER) and cuerpo =='Authenticate:':
-                print("ENTRA CON CONTRASEÑA Y ESTA EN LISTA")
-                time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
-                                                time.gmtime(time.time() +
-                                                int(Expire)))
-                atributos['address'] = self.client_address[0]
-                atributos['port'] = str(self.client_address[1])
-                atributos['Reg_time'] = time_expire_str
-                atributos['t_expiracion[s]'] = Expire
 
-                self.Client_data[USER] = atributos
-                self.comprobar_cad_del()
-                Answer = ('SIP/2.0 200 OK' + '\r\n\r\n')
-                self.wfile.write(bytes(Answer, 'utf-8'))
+                replica = DATA.split('\r\n')[2].split(' ')[1]
+                print(replica)
+
+                print(self.Client_nonce)
+                n_client = self.Client_nonce.get(USER,"")
+                if self.checking_nonce(n_client,USER) == replica:
+                    print("ENTRA CON CONTRASEÑA Y ESTA EN LISTA")
+                    time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
+                                                    time.gmtime(time.time() +
+                                                    int(Expire)))
+                    atributos['address'] = self.client_address[0]
+                    atributos['port'] = str(self.client_address[1])
+                    atributos['Reg_time'] = time_expire_str
+                    atributos['t_expiracion[s]'] = Expire
+
+                    self.Client_data[USER] = atributos
+                    self.comprobar_cad_del()
+                    Answer = ('SIP/2.0 200 OK' + '\r\n\r\n')
+                    self.wfile.write(bytes(Answer, 'utf-8'))
+                else:
+                    Answer = ('SIP/2.0 400 Bad Request' + '\r\n\r\n')
+                    self.wfile.write(bytes(Answer, 'utf-8'))
+                    print("ENVIANDO: ",Answer)
 
             elif not self.comprobar_usuario(USER):
                 print("NO ESTA EL USUARIO")
@@ -168,8 +213,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
             elif cuerpo != 'Authenticate:':
                 print('VIENE SIN AUTORIZACION --->')
+                self.Client_nonce[USER] = nonce
                 Answer = ('SIP/2.0 401 Unauthorized' + '\r\n')
-                Answer += ('WWW Authenticate: nonce=' + str(nonce)+ '\r\n\r\n')
+                Answer += ('WWW Authenticate: nonce=' + self.checking_nonce(nonce,USER)+ '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
         elif Method_Check == 'ACK' or 'BYE':
