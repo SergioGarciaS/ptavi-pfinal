@@ -113,11 +113,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         """
         function_check = hashlib.md5()
         function_check.update(bytes(str(nonce), "utf-8"))
-        #print('EL Nonce : "' + str(nonce) + '"') #COMPROBACION
         function_check.update(bytes(self.devolver_pass(user), "utf-8"))
-        #print('LA CONTRASEÑA ES : "' + self.devolver_pass(user) + '"') #COMPROBACION
-        function_check.digest() #no sé si esto hace falta o directamente hex
-        #print('RESPONSE PROXY: ' + function_check.hexdigest()) #COMPROBACION
+        function_check.digest()
         return function_check.hexdigest()
 
 
@@ -136,7 +133,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 response = respuesta[0]
                 #print(response)
                 corp = data.decode('utf-8').split('\r\n\r\n')[4:]
-                print(corp)
+                #print(corp)
                 self.wfile.write(bytes(Recv, 'utf-8'))
 
         except ConnectionRefusedError:
@@ -151,15 +148,15 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         if not self.Client_data:
             self.json2registered()
 
-        Methods = ['REGISTER','BYE','INVITE']
+        Methods = ['REGISTER','BYE','INVITE','ACK']
 
         LINE = self.rfile.read()
         DATA = LINE.decode('utf-8')
         CORTES = DATA.split(' ')
         Method_Check = CORTES[0]
         USUARIO = CORTES[1]
-        print("ESTE ES EL DATA: ", DATA)
-        print(Method_Check)
+        #print("ESTE ES EL DATA: ", DATA)
+        #print(Method_Check)
 
         Final_Check = CORTES[2].split('\r\n')[0]
         Protocol_Check = USUARIO.split(':')[0]
@@ -167,6 +164,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         cuerpo = DATA.split('\r\n')[2].split(' ')[0]
         #print(cuerpo)
         nonce = random.randint(0,99999)
+        print("Datos cliente(IP, puerto): " + str(self.client_address))
+        print("El cliente nos manda", DATA[:-4])
 
         if Method_Check not in Methods:
             Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
@@ -181,13 +180,14 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             Expire = CORTES[3].split('\r\n')[0]
 
             if self.comprobar_usuario(USER) and cuerpo =='Authenticate:':
-
+                print("ENTRA CON AUTENTICATE")
                 replica = DATA.split('\r\n')[2].split(' ')[1]
-                print(replica)
+                #print(replica)
 
-                print(self.Client_nonce)
+                #print(self.Client_nonce)
                 n_client = self.Client_nonce.get(USER,"")
-                if self.checking_nonce(n_client,USER) == replica:
+                resultado = self.checking_nonce(n_client,USER)
+                if  resultado == replica:
                     print("ENTRA CON CONTRASEÑA Y ESTA EN LISTA")
                     time_expire_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
                                                     time.gmtime(time.time() +
@@ -212,19 +212,19 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif cuerpo != 'Authenticate:':
-                print('VIENE SIN AUTORIZACION --->')
+                print('VIENE SIN AUTORIZACION --->\r\n')
                 self.Client_nonce[USER] = nonce
                 Answer = ('SIP/2.0 401 Unauthorized' + '\r\n')
-                Answer += ('WWW Authenticate: nonce=' + self.checking_nonce(nonce,USER)+ '\r\n\r\n')
+                Answer += ('WWW Authenticate: nonce=' + str(self.Client_nonce[USER])+ '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
-        elif Method_Check == 'ACK' or 'BYE':
+        elif Method_Check == 'ACK' or Method_Check == 'BYE':
 
             print("ACK ES NUESTRO DESTINO")
-            print('esto es el data ',DATA)
+            #print('esto es el data ',DATA)
             cabecera =  DATA[:-4]
             cliente = cabecera.split(' ')[1].split(':')[1]
-            USER_M = 'ACK' + ' sip:' + cliente + ' SIP/2.0'
+            USER_M = Method_Check + ' sip:' + cliente + ' SIP/2.0'
             Datar = USER_M + '\r\n\r\n'
             IP = '127.0.0.1'
             puerto = 6060
@@ -254,8 +254,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             puerto = 6060
             self.send_to_server(IP, puerto, Data, USER_M) #FUNCION ENVIAR.
 
-        print("Datos cliente(IP, puerto): " + str(self.client_address))
-        print("El cliente nos manda", DATA[:-4])
+
         self.register2json()
 
 
