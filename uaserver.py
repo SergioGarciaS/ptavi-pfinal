@@ -76,7 +76,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
-            PORT_SEND_RTP = '0000'
+            print(self.PORT_SEND_RTP)
             line = self.rfile.read()
             if not line:
                 break
@@ -101,7 +101,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 
             elif Method_Check == 'INVITE':
 
-                #self.PORT_SEND_RTP.append(probar[5])
+                self.PORT_SEND_RTP.append(probar[5])
                 cuerpo = ("Content-type: application/sdp\r\n"+
                           "\r\nv=0\r\n" + "o=" + str(config[0]) +
                           " " + str(config[2]) + "\r\ns=Pacticafinal\r\n" +
@@ -119,7 +119,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 
             elif Method_Check == 'ACK':
 
-                toRun = ('mp32rtp -i ' + IP_Client + ' -p ')
+                toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
                 toRun += (self.PORT_SEND_RTP[0] + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
                 os.system(toRun)
@@ -129,23 +129,22 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 
 if __name__ == "__main__":
     # Creamos servidor de eco y escuchamos
-    if len(sys.argv) == 2:
-        CONFIG = sys.argv[1]
-        # print(CONFIG)         ESTO DE MOMENTO LO HACE BIEN
-    else:
-        sys.exit('Usage: uaserver.py config')
+    try:
+        if len(sys.argv) == 2:
+            CONFIG = sys.argv[1]
+        else:
+            sys.exit('Usage: uaserver.py config')
 
-    parser = make_parser()
-    sHandler = ConfigHandler()
-    parser.setContentHandler(sHandler)
-    parser.parse(open(CONFIG))
-    config = sHandler.get_config()
-    #print('===================================',config,'======================')
-    Direction = config[2]
-    PORT = int(config[3])
-    serv = socketserver.UDPServer((Direction, PORT), EchoHandler)
-    print("Listening...")
-    serv.serve_forever()
+        parser = make_parser()
+        sHandler = ConfigHandler()
+        parser.setContentHandler(sHandler)
+        parser.parse(open(CONFIG))
+        config = sHandler.get_config()
+        Direction = config[2]
+        PORT = int(config[3])
+        serv = socketserver.UDPServer((Direction, PORT), EchoHandler)
+        print("Listening...")
+        serv.serve_forever()
 
-    #except KeyboardInterrupt:
-     #   print("END OF SERVER")
+    except KeyboardInterrupt:
+        sys.exit("END CLIENT_SERVER")
