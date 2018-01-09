@@ -9,8 +9,9 @@ from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 from uaserver import ConfigHandler
 from uaserver import log_maker
+import hashlib
 
-def checking_nonce(self, nonce, user):
+def checking_nonce(nonce):
     """
     method to get the number result of hash function
     with password and nonce
@@ -18,16 +19,16 @@ def checking_nonce(self, nonce, user):
     function_check = hashlib.md5()
     function_check.update(bytes(str(nonce), "utf-8"))
     print('EL Nonce : "' + str(nonce) + '"') #COMPROBACION
+    print(config[1])
     function_check.update(bytes(config[1], "utf-8"))
     print('LA CONTRASEÑA ES : "' + config[1] + '"') #COMPROBACION
-    function_check.digest() #no sé si esto hace falta o directamente hex
+    function_check.digest()
     print('RESPONSE PROXY: ' + function_check.hexdigest()) #COMPROBACION
     return function_check.hexdigest()
 
 
 if len(sys.argv) == 4:
         CONFIG = sys.argv[1]
-        print(CONFIG)
         parser = make_parser()
         cHandler = ConfigHandler()
         parser.setContentHandler(cHandler)
@@ -69,7 +70,7 @@ else:
         USER_M = Metodo.upper() + ' sip:' + Destination
         Data = USER_M + ' SIP/2.0\r\n\r\n'
 
-    print(Data) #ATENCION TRAZA A QUITAR....
+    #print(Data) #ATENCION TRAZA A QUITAR....
     IP_Proxy = config[5]
     PORT_Proxy = int(config[6])
 
@@ -81,12 +82,12 @@ else:
             print("Enviando:", USER_M)
             my_socket.send(bytes(Data, 'utf-8'))
             data = my_socket.recv(1024)
-            print('Recibido -- ', data.decode('utf-8'))
+            #print('Recibido -- ', data.decode('utf-8'))
             respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
             response = respuesta[0]
             if Metodo == 'invite' and respuesta == ['SIP/2.0 100 Trying',
-                                                'SIP/2.0 180 Ringing',
-                                                'SIP/2.0 200 OK']:
+                                                    'SIP/2.0 180 Ringing',
+                                                    'SIP/2.0 200 OK']:
                 Destination = sys.argv[3]
                 USER_M = 'ACK' + ' sip:' + Destination
                 Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
@@ -94,7 +95,7 @@ else:
                 my_socket.send(bytes(Data, 'utf-8'))
                 print("Socket terminado.")
 
-                toRun = ('mp32rtp -i ' + IP_Client + ' -p ')
+                toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
                 toRun += (RTP_PORT + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
                 os.system(toRun)
@@ -105,19 +106,20 @@ else:
             elif Metodo == 'register':
                 response = response.split('\r\n')[0]
                 if response == 'SIP/2.0 401 Unauthorized':
-                    print(respuesta)
                     nonce_large = respuesta[0].split(' ')[4]
                     nonce = nonce_large.split('=')[1]
-                    print(nonce)
+                    non_ce = checking_nonce(nonce)
                     USER_M = Metodo.upper() + ' sip:'
                     USER_M += Usuario + ':' + PORT_UA2
                     Data = USER_M + ' ' + 'SIP/2.0\r\n'+ 'Expires: ' + Expired + '\r\n'
-                    Data += 'Authenticate: ' + nonce + '\r\n\r\n'
+                    Data += 'Authenticate: ' + non_ce + '\r\n\r\n'
                     print("EnviandoR:", USER_M)
                     my_socket.send(bytes(Data, 'utf-8'))
                     print("Socket terminado.")
                 elif response == 'SIP/2.0 404 User Not Found':
                     print("No es posible conectarse")
+                elif response == 'SIP/2.0 400 Bad Request':
+                    print("Esta mal formado la peticion")
     except ConnectionRefusedError:
         print("Escribir en el log")
 
