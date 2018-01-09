@@ -84,7 +84,7 @@ def log_maker(path, tipo, Evento):
 
 class EchoHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
-    PORT_SEND_RTP = []
+    PORT_SEND_RTP = int("0")
 
     def handle(self):
         """Programa principal."""
@@ -119,8 +119,8 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 log_maker(config[7], "error", Answer)
 
             elif Method_Check == 'INVITE':
-
-                self.PORT_SEND_RTP.append(probar[5])
+                print(probar[5])
+                self.PORT_SEND_RTP = probar[5] #.append(probar[5])
                 cuerpo = ("Content-type: application/sdp\r\n"+
                           "\r\nv=0\r\n" + "o=" + str(config[0]) +
                           " " + str(config[2]) + "\r\ns=Pacticafinal\r\n" +
@@ -140,7 +140,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
             elif Method_Check == 'ACK':
 
                 toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
-                toRun += (self.PORT_SEND_RTP[0] + ' < ' + Audio_path)
+                toRun += (str(self.PORT_SEND_RTP) + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
                 log_maker(config[7], "ejecuta", toRun)
                 os.system(toRun)
