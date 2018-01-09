@@ -10,6 +10,20 @@ from xml.sax.handler import ContentHandler
 from uaserver import ConfigHandler
 from uaserver import log_maker
 
+def checking_nonce(self, nonce, user):
+    """
+    method to get the number result of hash function
+    with password and nonce
+    """
+    function_check = hashlib.md5()
+    function_check.update(bytes(str(nonce), "utf-8"))
+    print('EL Nonce : "' + str(nonce) + '"') #COMPROBACION
+    function_check.update(bytes(config[1], "utf-8"))
+    print('LA CONTRASEÑA ES : "' + config[1] + '"') #COMPROBACION
+    function_check.digest() #no sé si esto hace falta o directamente hex
+    print('RESPONSE PROXY: ' + function_check.hexdigest()) #COMPROBACION
+    return function_check.hexdigest()
+
 
 if len(sys.argv) == 4:
         CONFIG = sys.argv[1]
@@ -91,10 +105,14 @@ else:
             elif Metodo == 'register':
                 response = response.split('\r\n')[0]
                 if response == 'SIP/2.0 401 Unauthorized':
+                    print(respuesta)
+                    nonce_large = respuesta[0].split(' ')[4]
+                    nonce = nonce_large.split('=')[1]
+                    print(nonce)
                     USER_M = Metodo.upper() + ' sip:'
                     USER_M += Usuario + ':' + PORT_UA2
                     Data = USER_M + ' ' + 'SIP/2.0\r\n'+ 'Expires: ' + Expired + '\r\n'
-                    Data += 'Authenticate:' + ' loquer\r\n\r\n'
+                    Data += 'Authenticate: ' + nonce + '\r\n\r\n'
                     print("EnviandoR:", USER_M)
                     my_socket.send(bytes(Data, 'utf-8'))
                     print("Socket terminado.")
