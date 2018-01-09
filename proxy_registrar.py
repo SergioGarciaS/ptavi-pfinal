@@ -53,8 +53,14 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
     def register2json(self):
         """Json creator."""
-        with open('registered.json', "w") as outfile:
-            json.dump(self.Client_data, outfile, sort_keys=True, indent=4)
+        f = open('registered.txt', "w")
+        for User in self.Client_data:
+            value = self.Client_data[User]
+            Line = User + ': Registro:' + value['Reg_time'] + ' Address:'
+            Line += value['address'] + ':' + value['port']
+            Line += ' Expire:' + value['t_expiracion[s]'] + "\r\n"
+            f.write(Line)
+        f.close()
 
     def json2registered(self):
         """Json file checker."""
