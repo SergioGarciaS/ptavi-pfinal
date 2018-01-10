@@ -84,7 +84,7 @@ def log_maker(path, tipo, Evento):
 
 class EchoHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
-    PORT_SEND_RTP = int("0")
+    PORT_SEND_RTP = [0]
 
     def handle(self):
         """Programa principal."""
@@ -93,17 +93,14 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
-            print(self.PORT_SEND_RTP)
             line = self.rfile.read()
             if not line:
                 break
 
             probar = line.decode('utf-8').split(' ')
-
-            Protocol_Check = probar[1].split(':')[0]  #print(Protocol_Check)
+            Protocol_Check = probar[1].split(':')[0]
             Method_Check = line.decode('utf-8').split(' ')[0]
-            Final_Check = probar[2].split('\r\n')[0] # print(Final_Check)
-
+            Final_Check = probar[2].split('\r\n')[0]
             Audio_path = config[8]
             log_maker(config[7], "recibe", line.decode('utf-8'))
             print("El cliente nos manda " + line.decode('utf-8'))
@@ -120,7 +117,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
 
             elif Method_Check == 'INVITE':
                 print(probar[5])
-                self.PORT_SEND_RTP = probar[5] #.append(probar[5])
+                self.PORT_SEND_RTP.insert(0,probar[5])
                 cuerpo = ("Content-type: application/sdp\r\n"+
                           "\r\nv=0\r\n" + "o=" + str(config[0]) +
                           " " + str(config[2]) + "\r\ns=Pacticafinal\r\n" +
@@ -137,15 +134,15 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 Answer = ('SIP/2.0 200 OK' + '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
                 log_maker(config[7], "envia", Answer)
-            elif Method_Check == 'ACK':
 
+            elif Method_Check == 'ACK':
                 toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
-                toRun += (str(self.PORT_SEND_RTP) + ' < ' + Audio_path)
+                toRun += (self.PORT_SEND_RTP[0] + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
                 log_maker(config[7], "ejecuta", toRun)
                 os.system(toRun)
                 print(" *=====================*\n",
-                      " |The file is send...|\n",
+                      " |The file is sended...|\n",
                       "*=====================*\n")
 
 if __name__ == "__main__":
