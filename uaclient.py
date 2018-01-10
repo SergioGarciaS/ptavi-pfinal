@@ -93,6 +93,7 @@ else:
                                                     'SIP/2.0 200 OK']:
                 log_maker(config[7], "recibe", data.decode('utf-8'))
                 Destination = sys.argv[3]
+                RTP_PORT_S = data.decode('utf-8').split(' ')[9]
                 USER_M = 'ACK' + ' sip:' + Destination
                 Data = USER_M + ' ' + 'SIP/2.0\r\n\r\n'
                 print("Enviando:", USER_M)
@@ -101,12 +102,12 @@ else:
                 print("Socket terminado.")
 
                 toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
-                toRun += (RTP_PORT + ' < ' + Audio_path)
+                toRun += (RTP_PORT_S + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
                 log_maker(config[7], "ejecuta", toRun)
                 os.system(toRun)
                 print(" *=====================*\n",
-                      " |The file is send...|\n",
+                      " |The file is sended...|\n",
                       "*=====================*\n")
             elif response == 'SIP/2.0 200 OK':
                 log_maker(config[7], "recibe", response)
@@ -132,5 +133,6 @@ else:
                     print("Esta mal formado la peticion")
                     log_maker(config[7], "error", response)
     except ConnectionRefusedError:
+        log_maker(config[7], "error", "ConnectionRefusedErro")
         print("Escribir en el log")
 
