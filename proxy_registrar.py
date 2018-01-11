@@ -122,7 +122,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 print('Socket terminado')
                 data = pr_socket.recv(1024)
                 Recv = data.decode('utf-8')
-                log_maker(config[5], "recibe", Recv)
+                conf = [ip,puerto]
+                log_maker(config[5], "recibe", Recv,conf)
                 print('Recibido -- ', data.decode('utf-8'))
                 respuesta = data.decode('utf-8').split('\r\n\r\n')[0:3]
                 response = respuesta[0]
@@ -151,17 +152,18 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
         if Method_Check not in Methods:
             Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
-            log_maker(config[5], "error", Answer)
+            log_maker(config[5], "error", Answer,self.client_address)
+            log_maker(config[5], "envia", Answer,self.client_address)
             self.wfile.write(bytes(Answer, 'utf-8'))
 
         elif Final_Check != 'SIP/2.0' or Protocol_Check != 'sip':
             Answer = ('SIP/2.0 400 Bad Request' + '\r\n\r\n')
-            log_maker(config[5], "error", Answer)
+            log_maker(config[5], "error", Answer,self.client_address)
             self.wfile.write(bytes(Answer, 'utf-8'))
 
         elif Method_Check == 'REGISTER':
             Expire = CORTES[3].split('\r\n')[0]
-            log_maker(config[5], "recibe", DATA)
+            log_maker(config[5], "recibe", DATA,self.client_address)
             if self.comprobar_usuario(USER) and cuerpo =='Authenticate:':
                 print("ENTRA CON AUTENTICATE")
                 replica = DATA.split('\r\n')[2].split(' ')[1]
@@ -180,19 +182,22 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                     self.Client_data[USER] = atributos
                     self.comprobar_cad_del()
                     Answer = ('SIP/2.0 200 OK' + '\r\n\r\n')
-                    log_maker(config[5], "envia", Answer)
+                    conf = [atributos['address'],atributos['port']]
+                    log_maker(config[5], "envia", Answer, conf)
 
                     self.wfile.write(bytes(Answer, 'utf-8'))
                 else:
                     Answer = ('SIP/2.0 400 Bad Request' + '\r\n\r\n')
-                    log_maker(config[5], "error", Answer)
+                    log_maker(config[5], "error", Answer,self.client_address)
+                    log_maker(config[5], "envia", Answer,self.client_address)
                     self.wfile.write(bytes(Answer, 'utf-8'))
                     print("ENVIANDO: ",Answer)
 
             elif not self.comprobar_usuario(USER):
                 print("NO ESTA EL USUARIO")
                 Answer = ('SIP/2.0 404 User Not Found' + '\r\n\r\n')
-                log_maker(config[5], "error", Answer)
+                log_maker(config[5], "error", Answer,self.client_address)
+                log_maker(config[5], "envia", Answer,self.client_address)
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif cuerpo != 'Authenticate:':
@@ -200,33 +205,35 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 self.Client_nonce[USER] = nonce
                 Answer = ('SIP/2.0 401 Unauthorized' + '\r\n')
                 Answer += ('WWW Authenticate: nonce=' + str(self.Client_nonce[USER])+ '\r\n\r\n')
-                log_maker(config[5], "error", Answer)
+                log_maker(config[5], "error", Answer,self.client_address)
+                log_maker(config[5], "envia", Answer,self.client_address)
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
         elif Method_Check == 'ACK' or Method_Check == 'BYE':
 
             print("ACK ES NUESTRO DESTINO")
-            log_maker(config[5], "recibe", DATA)
+            log_maker(config[5], "recibe", DATA,self.client_address)
             cabecera =  DATA[:-4]
             cliente = cabecera.split(' ')[1].split(':')[1]
             USER_M = Method_Check + ' sip:' + cliente + ' SIP/2.0'
             Datar = USER_M + '\r\n\r\n'
             IP = '127.0.0.1'
             puerto = 6060
-            log_maker(config[5], "envia", Datar)
+            log_maker(config[5], "envia", Datar,self.client_address)
             self.send_to_server(IP, puerto, Datar, USER_M)
 
         elif Method_Check == 'INVITE':
 
             print("Pues es un invite loco")
             print("DATATONICA: ",DATA)
-            log_maker(config[5], "recibe", DATA)
+            log_maker(config[5], "recibe", DATA,self.client_address)
             cabecera = DATA[:-4]
             Send_Inf =DATA.split('\r\n')
             RTPSENDER = Send_Inf[7].split(' ')[1]
             SENDER = DATA.split('\r\n')[4].split(' ')[0].split('=')[1]
             cliente = cabecera.split(' ')[1].split(':')[1]
             value = self.Client_data.get(cliente,"")
+            print('VALUE :   ' ,value)
             USER_M = 'INVITE' + ' sip:' + cliente + ' SIP/2.0\r\n\r\n'
             USER_M += 'Content-Type: application/sdp\r\n'
             Cuerpo = 'v=0\r\n' + 'o=' + SENDER + ' ' + value.get('address')
@@ -238,9 +245,10 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             #MOVIDAS DE PRUEBA:
             IP = '127.0.0.1'
             puerto = 6060
-
+            conf = [IP,puerto]
+            log_maker(config[5], "envia", Data,conf)
             self.send_to_server(IP, puerto, Data, USER_M) #FUNCION ENVIAR.
-            log_maker(config[5], "envia", Data)
+
         self.register2json()
 
 if __name__ == "__main__":
@@ -248,7 +256,7 @@ if __name__ == "__main__":
         CONFIG = sys.argv[1]
     else:
         sys.exit('Usage: python3 proxy_registrar.py config')
-
+    conf = []
     parser = make_parser()
     pHandler = ConfigHandler()
     parser.setContentHandler(pHandler)
@@ -257,10 +265,11 @@ if __name__ == "__main__":
     Server_port = int(config[2])
 
     serv = socketserver.UDPServer(('', Server_port), SIPRegisterHandler)
-    log_maker(config[5], "start", " ")
+    log_maker(config[5], "start", " ",conf)
     print("Server ",config[0],' listening at port',config[2],'...')
     try:
         serv.serve_forever()
     except KeyboardInterrupt:
-        log_maker(config[5], "fin", " ")
+        conf = []
+        log_maker(config[5], "fin", " ",conf)
         print("Finalizado servidor")
