@@ -36,34 +36,35 @@ class ConfigHandler(ContentHandler):
             self.config.append(port)
 
         elif name == "rtpaudio":
-            puerto_rtp = attr.get('puerto',"")
+            puerto_rtp = attr.get('puerto', "")
             self.config.append(puerto_rtp)
 
         elif name == "regproxy":
             dir_proxy = attr.get('ip', "")
             self.config.append(dir_proxy)
-            port_proxy = attr.get('puerto',"")
+            port_proxy = attr.get('puerto', "")
             self.config.append(port_proxy)
 
         elif name == "log":
-            log_path = attr.get('path',"")
+            log_path = attr.get('path', "")
             self.config.append(log_path)
 
         elif name == "audio":
-            Audio_path = attr.get('path',"")
+            Audio_path = attr.get('path', "")
             self.config.append(Audio_path)
 
     def get_config(self):
         """ Devuelve la lista de configuración. """
         return self.config
 
-def log_maker(path, tipo, Evento,conf):
+
+def log_maker(path, tipo, Evento, conf):
     """ Función que escribe en el archivo log. """
-    funciones = ['envia','recibe','error','ejecuta']
-    comienzos = ['start','fin']
+    funciones = ['envia', 'recibe', 'error', 'ejecuta']
+    comienzos = ['start', 'fin']
     Log_file = open(path, 'a')
 
-    Log_file.write(time.strftime('%Y%m%d%H%M%S',time.gmtime(time.time())))
+    Log_file.write(time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time())))
 
     if tipo in funciones:
         if tipo == "envia":
@@ -87,6 +88,7 @@ def log_maker(path, tipo, Evento,conf):
             Log_file.write(" Finishing...\r\n")
     Log_file.close()
 
+
 class EchoHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
     PORT_SEND_RTP = [0]
@@ -95,36 +97,33 @@ class EchoHandler(socketserver.DatagramRequestHandler):
         """Programa principal."""
         Methods = ['INVITE', 'BYE', 'ACK']
         IP_Client = str(self.client_address[0])
-        print(IP_Client)
-        print(str(self.client_address[1]))
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
             if not line:
                 break
-            print(config)
             probar = line.decode('utf-8').split(' ')
             Protocol_Check = probar[1].split(':')[0]
             Method_Check = line.decode('utf-8').split(' ')[0]
             Final_Check = probar[2].split('\r\n')[0]
             Audio_path = config[7]
-            log_maker(config[7], "recibe", line.decode('utf-8'),self.client_address)
-            print("El cliente nos manda " + line.decode('utf-8'),self.client_address)
+            conf = self.client_address
+            log_maker(config[7], "recibe", line.decode('utf-8'), conf)
+            print("El cliente nos manda " + line.decode('utf-8'))
 
             if Method_Check not in Methods:
                 Answer = ('SIP/2.0 405 Method Not allowed' + '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
-                log_maker(config[7], "error", Answer,str(self.client_addresss))
+                log_maker(config[7], "error", Answer, self.client_address)
 
             elif Final_Check != 'SIP/2.0' or Protocol_Check != 'sip':
                 Answer = ('SIP/2.0 400 Bad Request' + '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
-                log_maker(config[7], "error", Answer,self.client_address)
+                log_maker(config[7], "error", Answer, self.client_address)
 
             elif Method_Check == 'INVITE':
-                print(probar[5])
-                self.PORT_SEND_RTP.insert(0,probar[5])
-                cuerpo = ("Content-type: application/sdp\r\n"+
+                self.PORT_SEND_RTP.insert(0, probar[5])
+                cuerpo = ("Content-type: application/sdp\r\n" +
                           "\r\nv=0\r\n" + "o=" + str(config[0]) +
                           " " + str(config[2]) + "\r\ns=Pacticafinal\r\n" +
                           "t=0\r\nm=audio " + str(config[4]) + " RTP\r\n\r\n")
@@ -133,19 +132,19 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                           'SIP/2.0 180 Ringing' + '\r\n\r\n' +
                           'SIP/2.0 200 OK' + '\r\n\r\n' +
                           cuerpo)
-                log_maker(config[7], "envia", Answer,self.client_address)
+                log_maker(config[7], "envia", Answer, self.client_address)
                 self.wfile.write(bytes(Answer, 'utf-8'))
 
             elif Method_Check == 'BYE':
                 Answer = ('SIP/2.0 200 OK' + '\r\n\r\n')
                 self.wfile.write(bytes(Answer, 'utf-8'))
-                log_maker(config[7], "envia", Answer,self.client_address)
+                log_maker(config[7], "envia", Answer, self.client_address)
 
             elif Method_Check == 'ACK':
                 toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
                 toRun += (self.PORT_SEND_RTP[0] + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
-                log_maker(config[7], "ejecuta", toRun,self.client_address)
+                log_maker(config[7], "ejecuta", toRun, self.client_address)
                 os.system(toRun)
                 print(" *=====================*\n",
                       " |The file is sended...|\n",
@@ -169,12 +168,10 @@ if __name__ == "__main__":
         serv = socketserver.UDPServer((Direction, PORT), EchoHandler)
         print("Listening...")
         conf = []
-        log_maker(config[7], "start", " ",conf)
+        log_maker(config[7], "start", " ", conf)
         serv.serve_forever()
-
 
     except KeyboardInterrupt:
         conf = []
         log_maker(config[7], "fin", " ", conf)
         sys.exit("END CLIENT_SERVER")
-
