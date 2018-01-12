@@ -65,6 +65,22 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             f.write(Line)
         f.close()
 
+    def read2json(self):
+        """File reader."""
+        f = open('registered.txt', "r")
+        lineas = f.readlines()
+        for linea in lineas:
+            atributos = {}
+            linear = linea.split(' ')
+            User = linear[0].split(':')[0]
+            atributos['address'] = linear[4].split(':')[1]
+            atributos['port'] = linear[4].split(':')[2]
+            atributos['s_port'] = linear[6]
+            reg_time = linear[1].split(':')[1] + linear[2]
+            atributos['Reg_time'] = reg_time
+            atributos['t_expiracion[s]'] = linear[5].split(':')[1]
+            self.Client_data[User] = atributos
+
     def comprobar_cad_del(self):
         """Output time and user's delete checker."""
         time_str = time.strftime('%Y-%m-%d %H:%M:%S +%Z',
@@ -135,6 +151,10 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     def handle(self):
         """handle method of the server class."""
         atributos = {}  # Value de datos del cliente.
+
+        if not self.Client_data:
+            self.read2json()
+
         Methods = ['REGISTER', 'BYE', 'INVITE', 'ACK']
         LINE = self.rfile.read()
         DATA = LINE.decode('utf-8')
