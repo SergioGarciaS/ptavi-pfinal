@@ -21,6 +21,11 @@ def checking_nonce(nonce):
     return function_check.hexdigest()
 
 
+def cvlc(dest, port):
+    """To execute CVLC in Thread."""
+    command = 'cvlc rtp://@' + dest + ':' + str(port) + " 2> /dev/null &"
+    os.system(command)
+
 if len(sys.argv) == 4:
         CONFIG = sys.argv[1]
         parser = make_parser()
@@ -98,6 +103,7 @@ else:
                 toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
                 toRun += (RTP_PORT_S + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
+                cvlc(conf[0], conf[1])
                 log_maker(config[7], "ejecuta", toRun, conf)
                 os.system(toRun)
                 print(" *=====================*\n",
