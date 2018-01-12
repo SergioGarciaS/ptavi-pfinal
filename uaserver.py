@@ -89,6 +89,12 @@ def log_maker(path, tipo, Evento, conf):
     Log_file.close()
 
 
+def cvlc(dest, port):
+    """To execute CVLC in Thread."""
+    command = 'cvlc rtp://@' + dest + ':' + str(port) + " 2> /dev/null &"
+    os.system(command)
+
+
 class EchoHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
 
@@ -142,6 +148,7 @@ class EchoHandler(socketserver.DatagramRequestHandler):
                 log_maker(config[7], "envia", Answer, self.client_address)
 
             elif Method_Check == 'ACK':
+                cvlc(self.client_address[0], self.client_address[1])
                 toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
                 toRun += (self.PORT_SEND_RTP[0] + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
