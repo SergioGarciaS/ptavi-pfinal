@@ -13,10 +13,7 @@ import hashlib
 
 
 def checking_nonce(nonce):
-
-    """ method to get the number result of hash function
-    with password and nonce """
-
+    """devuelve numero encriptado."""
     function_check = hashlib.md5()
     function_check.update(bytes(str(nonce), "utf-8"))
     print('EL Nonce : "' + str(nonce) + '"')
@@ -42,7 +39,8 @@ Metodo = sys.argv[2]
 Methods = ['register', 'invite', 'bye']
 
 if Metodo not in Methods:
-    log_maker(config[7], "error", "metodos erroneos")
+    conf = []
+    log_maker(config[7], "error", "metodos erroneos",conf)
     sys.exit('Los metodos utilizados son: invite,register,bye')
 else:
 
