@@ -16,12 +16,8 @@ def checking_nonce(nonce):
     """devuelve numero encriptado."""
     function_check = hashlib.md5()
     function_check.update(bytes(str(nonce), "utf-8"))
-    print('EL Nonce : "' + str(nonce) + '"')
-    print(config[1])
     function_check.update(bytes(config[1], "utf-8"))
-    print('LA CONTRASEÑA ES : "' + config[1] + '"')
     function_check.digest()
-    print('RESPONSE PROXY: ' + function_check.hexdigest())
     return function_check.hexdigest()
 
 
@@ -40,7 +36,7 @@ Methods = ['register', 'invite', 'bye']
 
 if Metodo not in Methods:
     conf = []
-    log_maker(config[7], "error", "metodos erroneos",conf)
+    log_maker(config[7], "error", "metodos erroneos", conf)
     sys.exit('Los metodos utilizados son: invite,register,bye')
 else:
 
@@ -99,7 +95,6 @@ else:
                 log_maker(config[7], "envia", Data, conf)
                 my_socket.send(bytes(Data, 'utf-8'))
                 print("Socket terminado.")
-                print('config ', config)
                 toRun = ('./mp32rtp -i ' + IP_Client + ' -p ')
                 toRun += (RTP_PORT_S + ' < ' + Audio_path)
                 print("Vamos a ejecutar", toRun)
@@ -136,4 +131,3 @@ else:
     except ConnectionRefusedError:
         conf = []
         log_maker(config[7], "error", "ConnectionRefusedError", conf)
-        print("Escribir en el log")
