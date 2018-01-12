@@ -14,11 +14,11 @@ class ConfigHandler(ContentHandler):
     """Funcion para leer el xml."""
 
     def __init__(self):
-        """Creación de lista de configuración."""
+        """Creacion de lista de configuracion."""
         self.config = []
 
     def startElement(self, name, attr):
-        """Obtención de atributos del archivo de configuración."""
+        """Obtencion de atributos del archivo de configuracion."""
         if name == "account":
             username = attr.get('username', "")
             self.config.append(username)
@@ -54,12 +54,12 @@ class ConfigHandler(ContentHandler):
             self.config.append(Audio_path)
 
     def get_config(self):
-        """ Devuelve la lista de configuración. """
+        """Devuelve la lista de configuracion."""
         return self.config
 
 
 def log_maker(path, tipo, Evento, conf):
-    """ Función que escribe en el archivo log. """
+    """Funcion que escribe en el archivo log."""
     funciones = ['envia', 'recibe', 'error', 'ejecuta']
     comienzos = ['start', 'fin']
     Log_file = open(path, 'a')
@@ -91,6 +91,7 @@ def log_maker(path, tipo, Evento, conf):
 
 class EchoHandler(socketserver.DatagramRequestHandler):
     """Echo server class."""
+
     PORT_SEND_RTP = [0]
 
     def handle(self):
