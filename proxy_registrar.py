@@ -18,12 +18,11 @@ class ConfigHandler(ContentHandler):
     """Funcion para leer el xml."""
 
     def __init__(self):
-        """Creación de lista de configuración."""
+        """Creacion de lista de configuracion."""
         self.config = []
 
     def startElement(self, name, attr):
-        """Obtención de atributos del archivo de configuración."""
-
+        """Obtencion de atributos del archivo de configuracion."""
         if name == "server":
             Name = attr.get('name', "")
             self.config.append(Name)
@@ -44,7 +43,7 @@ class ConfigHandler(ContentHandler):
             self.config.append(log_path)
 
     def get_config(self):
-        """ Devuelve la lista de configuración. """
+        """Devuelve la lista de configuracion."""
         return self.config
 
 
@@ -78,7 +77,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             self.Client_data.pop(users)
 
     def comprobar_usuario(self, usuario):
-        """ FUNCION PARA COMPROBAR USUARIOS"""
+        """FUNCION PARA COMPROBAR USUARIOS."""
         user_pass = open("passwords", "r")
         self.user_pass = user_pass.read()
         usuarios_pass = self.user_pass.split('\n')
@@ -90,8 +89,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         return esta
 
     def devolver_pass(self, usuario):
-        """ FUNCION PARA COMPROBAR USUARIOS"""
-
+        """FUNCION PARA COMPROBAR USUARIOS."""
         user_pass = open("passwords", "r")
         self.user_pass = user_pass.read()
         usuarios_pass = self.user_pass.split('\n')
@@ -104,10 +102,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         return passwd
 
     def checking_nonce(self, nonce, user):
-        """
-        method to get the number result of hash function
-        with password and nonce
-        """
+        """Metodo para chequear el nonce."""
         function_check = hashlib.md5()
         function_check.update(bytes(str(nonce), "utf-8"))
         function_check.update(bytes(self.devolver_pass(user), "utf-8"))
@@ -115,6 +110,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         return function_check.hexdigest()
 
     def send_to_server(self, ip, puerto, data, cabecera):
+        """Metodo para enviar al server."""
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as pr_socket:
                 pr_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
